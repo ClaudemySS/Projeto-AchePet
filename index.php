@@ -1,10 +1,67 @@
 <?php
 include 'config.php';
 session_start();
+header('Content-Type: text/html; charset=utf-8'); // <-- ADICIONADO PARA FORÇAR UTF-8
 
 // Verifica se o usuário já está logado
 $user_id = $_SESSION['user_id'] ?? null;
 $user_name = $_SESSION['user_name'] ?? null;
+
+// --- LÓGICA: Buscar pets em destaque e perdidos ---
+try {
+    $select_pets = $conn->prepare("
+        SELECT p.id, p.nome, p.status, p.destaque, p.local_desaparecimento, p.atualizado_em, pi.img_url 
+        FROM pets p 
+        LEFT JOIN (
+            -- Sub-consulta para pegar apenas UMA imagem (a primeira) por pet
+            SELECT pet_id, img_url 
+            FROM pet_images 
+            GROUP BY pet_id
+        ) pi ON p.id = pi.pet_id
+        WHERE p.status = 'Perdido' OR p.destaque = 1
+        ORDER BY 
+            p.destaque DESC, -- Destaque vem primeiro
+            p.data_cadastro DESC -- Mais recentes primeiro
+        LIMIT 4 -- Limitar a 4 para a página inicial
+    ");
+    $select_pets->execute();
+    $pets_para_mostrar = $select_pets->fetchAll(PDO::FETCH_ASSOC);
+} catch (Exception $e) {
+    $pets_para_mostrar = []; // Em caso de erro, a lista fica vazia
+    // echo 'Erro ao buscar pets: ' . $e->getMessage(); // Descomente para depurar
+}
+
+// --- NOVA LÓGICA: Buscar pets para ADOÇÃO ---
+try {
+    $select_adocao = $conn->prepare("
+        SELECT p.id, p.nome, p.status, p.local_desaparecimento, p.atualizado_em, pi.img_url 
+        FROM pets p 
+        LEFT JOIN (
+            SELECT pet_id, img_url 
+            FROM pet_images 
+            GROUP BY pet_id
+        ) pi ON p.id = pi.pet_id
+        WHERE TRIM(LOWER(p.status)) = 'adoção' -- CORRIGIDO: Procurando por 'adoção'
+        ORDER BY 
+            p.data_cadastro DESC -- Mais recentes primeiro
+        LIMIT 4 -- Limitar a 4 para a página inicial
+    ");
+    $select_adocao->execute();
+    $pets_para_adocao = $select_adocao->fetchAll(PDO::FETCH_ASSOC);
+} catch (Exception $e) {
+    $pets_para_adocao = []; // Em caso de erro, a lista fica vazia
+    echo 'Erro ao buscar pets para adoção: ' . $e->getMessage(); // ATIVANDO MENSAGEM DE ERRO
+}
+
+
+// --- NOVO: Lista de imagens para o banner slideshow ---
+$banner_images = [
+    "https://www.al.sp.gov.br/repositorio/noticia/N-12-2019/fg245895.jpg",
+    "https://conteudo.imguol.com.br/c/entretenimento/e4/2020/11/18/pets-no-mato-1605715705944_v2_900x506.jpg",
+    "https://admin.cnnbrasil.com.br/wp-content/uploads/sites/12/2024/02/pets-dengue.jpg?w=1200&h=900&crop=0",
+    "https://f.i.uol.com.br/fotografia/2020/10/06/16020012105f7c993a85c94_1602001210_5x2_rt.jpg"
+];
+
 ?>
 <!DOCTYPE html>
 <html lang="pt-br">
@@ -23,35 +80,8 @@ $user_name = $_SESSION['user_name'] ?? null;
         font-family: 'Inter', sans-serif;
         background-color: #F0F9FF; /* Fundo azul claro */
     }
-    /* Ícone de play (apenas para a seção 'Aprenda') */
-    .video-play-button {
-        position: absolute;
-        top: 50%;
-        left: 50%;
-        transform: translate(-50%, -50%);
-        width: 32px;
-        height: 32px;
-        background-color: rgba(255, 255, 255, 0.9);
-        border-radius: 50%;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        opacity: 0.8;
-        transition: all 0.2s ease;
-    }
-    .video-play-button:hover {
-        opacity: 1;
-    }
-    .video-play-button::after {
-        content: '';
-        display: block;
-        width: 0;
-        height: 0;
-        border-style: solid;
-        border-width: 6px 0 6px 10px;
-        border-color: transparent transparent transparent #333;
-        margin-left: 3px;
-    }
+    /* (O CSS para .video-play-button não é mais necessário, mas pode ficar) */
+    
     /* Esconde o input de arquivo */
     #cameraInput {
         display: none;
@@ -82,67 +112,138 @@ $user_name = $_SESSION['user_name'] ?? null;
   <!-- Container Principal -->
   <main class="w-full max-w-5xl mx-auto px-4 py-8">
 
-    <!-- Banner -->
-    <div class="w-full mt-2 relative">
-      <img src="https://www.al.sp.gov.br/repositorio/noticia/N-12-2019/fg245895.jpg" alt="banner pet"
-        class="rounded-xl w-full object-cover shadow-lg h-48 md:h-80"> <!-- Altura ajustada -->
-      <button class="absolute bottom-4 left-4 bg-white border-2 border-yellow-400 text-sky-700 font-semibold rounded-lg px-4 py-1 shadow-md">
-        ✅ Ache um Pet!
-      </button>
-      <button class="absolute top-1/2 right-4 -translate-y-1/2 bg-white p-2 rounded-full shadow">
-        <i class="fas fa-chevron-right text-sky-700"></i>
-      </button>
+    <!-- 
+      CORREÇÃO: Banner agora é um slideshow 
+    -->
+    <div class="w-full mt-2 relative rounded-xl shadow-lg overflow-hidden h-48 md:h-80" id="banner-slider">
+        <?php foreach ($banner_images as $index => $img_url): ?>
+            <img src="<?php echo htmlspecialchars($img_url); ?>" 
+                 alt="Banner Pet <?php echo $index + 1; ?>"
+                 class="banner-slide absolute top-0 left-0 w-full h-full object-cover transition-opacity duration-1000 ease-in-out <?php echo $index == 0 ? 'opacity-100' : 'opacity-0'; ?>"
+                 onerror="this.style.display='none'"> <!-- Esconde se a imagem falhar -->
+        <?php endforeach; ?>
     </div>
+    <!-- Fim do Banner Slideshow -->
 
-    <!-- Seu pet se perdeu? -->
+    <!-- 
+      SEÇÃO: Achados e Perdidos (Dinâmico)
+    -->
     <div class="w-full mt-6">
-      <h2 class="text-base font-medium text-sky-900">Seu pet se perdeu?</h2>
-      <p class="text-sm text-sky-600">Procure aqui!</p>
-      <div class="flex gap-2 md:gap-4 mt-2">
-        
-        <!-- Link para o Pet ID 1 -->
-        <a href="perfil_pet.php?id=1">
-          <img src="https://meusanimais.com.br/wp-content/uploads/2017/05/gato-de-rua.jpg" class="w-20 h-20 md:w-32 md:h-32 rounded-lg object-cover shadow-md hover:shadow-lg transition-all">
-        </a>
-        
-        <!-- Link para o Pet ID 2 -->
-        <a href="perfil_pet.php?id=2">
-          <img src="https://ogimg.infoglobo.com.br/in/9905525-bef-05d/FT1086A/2013-644517267-20130910023604224ap.jpg_20130910.jpg" class="w-20 h-20 md:w-32 md:h-32 rounded-lg object-cover shadow-md hover:shadow-lg transition-all">
-        </a>
-        
-        <!-- Link para o Pet ID 3 -->
-        <a href="perfil_pet.php?id=3">
-          <img src="https://img.quizur.com/f/img6436006769e776.21477100.jpg?lastEdited=1681260651" class="w-20 h-20 md:w-32 md:h-32 rounded-lg object-cover shadow-md hover:shadow-lg transition-all">
-        </a>
+      <div class="flex justify-between items-center mb-2">
+        <div>
+          <h2 class="text-base md:text-lg font-medium text-sky-900">Achados e Perdidos</h2>
+          <p class="text-sm text-sky-600">Pets em destaque e perdidos recentemente</p>
+        </div>
+        <!-- Link para ver todos (aponta para a página que já fizemos) -->
+        <a href="view_all_pets.php" class="text-sm text-orange-600 font-semibold hover:underline flex-shrink-0">Ver todos</a>
+      </div>
+
+      <!-- Grid responsivo para os cards dos pets -->
+      <div class="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4 mt-2">
+
+        <?php if (empty($pets_para_mostrar)): ?>
+          <p class="text-gray-500 col-span-full">Nenhum pet perdido ou em destaque no momento.</p>
+        <?php else: ?>
+          <?php foreach ($pets_para_mostrar as $pet): ?>
+            
+            <!-- Card do Pet -->
+            <a href="perfil_pet.php?id=<?php echo $pet['id']; ?>" class="block bg-white rounded-lg shadow-md overflow-hidden transition-all hover:shadow-lg hover:scale-105">
+              
+              <!-- Imagem com status -->
+              <div class="relative">
+                <img src="<?php echo htmlspecialchars($pet['img_url'] ?? 'https://placehold.co/300x300/E2E8F0/333?text=Sem+Foto'); ?>" 
+                     alt="Foto de <?php echo htmlspecialchars($pet['nome']); ?>" 
+                     class="w-full h-32 md:h-40 object-cover"
+                     onerror="this.src='https://placehold.co/300x300/E2E8F0/333?text=Erro'">
+                
+                <!-- Tag de Status (como na image_213b48.png) -->
+                <?php
+                  $status_color = 'bg-gray-500';
+                  if ($pet['status'] == 'Perdido') $status_color = 'bg-red-600';
+                  if ($pet['status'] == 'Encontrado') $status_color = 'bg-green-600';
+                  if ($pet['status'] == 'Adoção') $status_color = 'bg-blue-600'; // Cor para Adoção
+                ?>
+                <span class="absolute top-2 left-2 <?php echo $status_color; ?> text-white text-xs font-bold px-2 py-1 rounded">
+                  <?php echo htmlspecialchars(mb_strtoupper($pet['status'], 'UTF-8')); // <-- CORRIGIDO ?>
+                </span>
+                
+                <!-- Tag de Destaque (se for destaque) -->
+                <?php if ($pet['destaque'] == 1): ?>
+                  <span class="absolute bottom-2 right-2 bg-yellow-400 text-yellow-900 text-xs font-bold p-1 rounded-full w-6 h-6 flex items-center justify-center">
+                    <i class="fas fa-star"></i>
+                  </span>
+                <?php endif; ?>
+              </div>
+              
+              <!-- Informações do Card -->
+              <div class="p-3">
+                <h4 class="text-md md:text-lg font-bold text-sky-900 truncate"><?php echo htmlspecialchars($pet['nome']); ?></h4>
+                <p class="text-xs text-gray-500 truncate"><?php echo htmlspecialchars($pet['local_desaparecimento']); ?></p>
+                <p class="text-xs text-gray-500 mt-1"><?php echo htmlspecialchars($pet['atualizado_em']); ?> atrás</p>
+              </div>
+            </a>
+            
+          <?php endforeach; ?>
+        <?php endif; ?>
 
       </div>
     </div>
 
-    <!-- Cuidados -->
+
+    <!-- 
+        *** SEÇÃO RESTAURADA E CORRIGIDA ***
+        SEÇÃO: Pets para Doação (Dinâmico)
+    -->
     <div class="w-full mt-6">
-      <h2 class="text-base font-medium text-sky-900">Aprenda a como cuidar do seu pet</h2>
-      <p class="text-sm text-sky-600">Gato ou cachorro, conheça detalhes sobre cada um</p>
-      <div class="flex gap-2 md:gap-4 mt-2 overflow-x-auto">
-        <div class="relative w-28 h-20 md:w-40 md:h-24 rounded-lg overflow-hidden flex-shrink-0 shadow-md">
-          <img src="https://pt.quizur.com/_image?href=https://img.quizur.com/f/img5e6328181de3d9.26777868.jpg?lastEdited=1583556635&w=1024&h=1024&f=webp" class="w-full h-full object-cover">
-          <a href="#" class="absolute inset-0 flex items-center justify-center text-white text-2xl">
-            <span class="video-play-button"></span>
-          </a>
+      <div class="flex justify-between items-center mb-2">
+        <div>
+          <h2 class="text-base md:text-lg font-medium text-sky-900">Pets para doação</h2>
+          <p class="text-sm text-sky-600">Animais esperando por um novo lar</p>
         </div>
-        <div class="relative w-28 h-20 md:w-40 md:h-24 rounded-lg overflow-hidden flex-shrink-0 shadow-md">
-          <img src="https://admin.cnnbrasil.com.br/wp-content/uploads/sites/12/2021/06/41479_2FF050B33087A556.png?w=1200&h=675&crop=1" class="w-full h-full object-cover">
-          <a href="#" class="absolute inset-0 flex items-center justify-center text-white text-2xl">
-            <span class="video-play-button"></span>
-          </a>
-        </div>
-        <div class="relative w-28 h-20 md:w-40 md:h-24 rounded-lg overflow-hidden flex-shrink-0 shadow-md">
-        <img src="https://i.pinimg.com/474x/89/c1/03/89c1037ac7cadef0fc4bf2989ca64383.jpg" class="w-full h-full object-cover">
-          <a href="#" class="absolute inset-0 flex items-center justify-center text-white text-2xl">
-            <span class="video-play-button"></span>
-          </a>
-        </div>
+        <!-- Link para ver todos (aponta para a página que já fizemos) -->
+        <a href="view_all_pets.php" class="text-sm text-orange-600 font-semibold hover:underline flex-shrink-0">Ver todos</a>
+      </div>
+
+      <!-- Grid responsivo para os cards dos pets -->
+      <div class="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4 mt-2">
+
+        <?php if (empty($pets_para_adocao)): ?>
+          <p class="text-gray-500 col-span-full">Nenhum pet para adoção no momento.</p>
+        <?php else: ?>
+          <?php foreach ($pets_para_adocao as $pet): ?>
+            
+            <!-- Card do Pet (usando a nova variável $pets_para_adocao) -->
+            <a href="perfil_pet.php?id=<?php echo $pet['id']; ?>" class="block bg-white rounded-lg shadow-md overflow-hidden transition-all hover:shadow-lg hover:scale-105">
+              
+              <!-- Imagem com status -->
+              <div class="relative">
+                <img src="<?php echo htmlspecialchars($pet['img_url'] ?? 'https://placehold.co/300x300/E2E8F0/333?text=Sem+Foto'); ?>" 
+                     alt="Foto de <?php echo htmlspecialchars($pet['nome']); ?>" 
+                     class="w-full h-32 md:h-40 object-cover"
+                     onerror="this.src='https://placehold.co/300x300/E2E8F0/333?text=Erro'">
+                
+                <!-- Tag de Status (Adoção) - CORRIGIDO para ser dinâmico -->
+                <span class="absolute top-2 left-2 bg-blue-600 text-white text-xs font-bold px-2 py-1 rounded">
+                  <?php echo htmlspecialchars(mb_strtoupper($pet['status'], 'UTF-8')); // <-- CORRIGIDO ?>
+                </span>
+              </div>
+              
+              <!-- Informações do Card -->
+              <div class="p-3">
+                <h4 class="text-md md:text-lg font-bold text-sky-900 truncate"><?php echo htmlspecialchars($pet['nome']); ?></h4>
+                <!-- Usando 'local_desaparecimento' como local, ajuste se o campo for outro -->
+                <p class="text-xs text-gray-500 truncate"><?php echo htmlspecialchars($pet['local_desaparecimento']); ?></p> 
+                <p class="text-xs text-gray-500 mt-1"><?php echo htmlspecialchars($pet['atualizado_em']); ?> atrás</p>
+              </div>
+            </a>
+            
+          <?php endforeach; ?>
+        <?php endif; ?>
+
       </div>
     </div>
+    <!-- Fim da Seção Pets para Doação -->
+
 
   </main> <!-- Fim do Container Principal -->
 
@@ -178,10 +279,34 @@ $user_name = $_SESSION['user_name'] ?? null;
   <input type="file" accept="image/*" capture="user" id="cameraInput">
 
   <!-- 
-    CORREÇÃO: 
-    Novo JavaScript para Câmera com compressão de imagem
+    JavaScript para Câmera e Slideshow
   -->
   <script>
+    // --- NOVO: Script do Slideshow do Banner ---
+    document.addEventListener('DOMContentLoaded', function() {
+        const slides = document.querySelectorAll('#banner-slider .banner-slide');
+        let currentSlide = 0;
+        
+        if (slides.length > 1) {
+            setInterval(() => {
+                // Esconde o slide atual
+                slides[currentSlide].classList.remove('opacity-100');
+                slides[currentSlide].classList.add('opacity-0');
+                
+                // Calcula o próximo slide
+                currentSlide = (currentSlide + 1) % slides.length;
+                
+                // Mostra o próximo slide
+                slides[currentSlide].classList.remove('opacity-0');
+                slides[currentSlide].classList.add('opacity-100');
+            }, 4000); // Muda a cada 4 segundos
+        }
+    });
+    // --- Fim do Script do Slideshow ---
+
+
+    // --- Script da Câmera (Com Compressão) ---
+    
     // Passa o status do login (ID do usuário) do PHP para o JavaScript
     const USER_LOGGED_IN = <?php echo json_encode(isset($user_id)); ?>;
     
@@ -216,8 +341,7 @@ $user_name = $_SESSION['user_name'] ?? null;
         loadingOverlay.textContent = 'Processando foto...';
         document.body.appendChild(loadingOverlay);
 
-        // --- INÍCIO DA LÓGICA DE COMPRESSÃO ---
-
+        // --- LÓGICA DE COMPRESSÃO ---
         const reader = new FileReader();
         reader.onload = function(e) {
             const img = new Image();
@@ -250,7 +374,6 @@ $user_name = $_SESSION['user_name'] ?? null;
                 ctx.drawImage(img, 0, 0, width, height);
                 
                 // Converte o canvas para um Data URL (Base64) com compressão (JPEG, 80% de qualidade)
-                // Isso reduz drasticamente o tamanho da string
                 const compressedImageData = canvas.toDataURL('image/jpeg', 0.8);
 
                 try {
@@ -268,16 +391,12 @@ $user_name = $_SESSION['user_name'] ?? null;
             };
             img.src = e.target.result;
         };
-
         reader.onerror = function () {
             alert('Falha ao ler o arquivo de imagem.');
             loadingOverlay.remove();
         };
-
         // Lê o arquivo
         reader.readAsDataURL(file);
-        
-        // --- FIM DA LÓGICA DE COMPRESSÃO ---
     });
   </script>
 
