@@ -2,13 +2,13 @@ Projeto feito exclusivamente para faculdade de Sistemas de Informação, baseado
 # 🐾 AchePet
 
 <p align="center">
-  <img src="https://github.com/user-attachments/assets/1706a78d-3a00-4076-b771-c0ee9e2e1d22 />" alt="Logo AchePet" width="200"/>
+  <img src="https://github.com/user-attachments/assets/1706a78d-3a00-4076-b771-c0ee9e2e1d22" alt="Logo AchePet" width="200"/>
 </p>
 
 <p align="center">
   <img src="https://img.shields.io/badge/Status-Em%20Desenvolvimento-yellow" alt="Status do Projeto">
   <img src="https://img.shields.io/badge/Hackathon-Hacker%20Cidad%C3%A3o%2010.0-blue" alt="Hacker Cidadão 10.0">
-  <img src="https://img.shields.io/badge/Licen%C3%A7a-MIT-green" alt="Tópicos Avançados em S.I.">
+  <img src="https://img.shields.io/badge/Disciplina-Tópicos%20Avançados%20em%20S.I.-purple" alt="Disciplina de Tópicos Avançados em S.I.">
 </p>
 
 > Projeto de plataforma web/mobile para centralizar e facilitar a busca e notificação de animais perdidos e encontrados. Conceito inicial pensado durante o hackathon **Hacker Cidadão 10.0** e aprimorado/terminado durante a cadeira de Tópicos Avançados em Sistemas de Informação, no último período do curso.
