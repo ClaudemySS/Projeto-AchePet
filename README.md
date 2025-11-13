@@ -8,7 +8,7 @@ Projeto feito exclusivamente para faculdade de Sistemas de Informação, baseado
 <p align="center">
   <img src="https://img.shields.io/badge/Status-Em%20Desenvolvimento-yellow" alt="Status do Projeto">
   <img src="https://img.shields.io/badge/Hackathon-Hacker%20Cidad%C3%A3o%2010.0-blue" alt="Hacker Cidadão 10.0">
-  <img src="https://img.shields.io/badge/Licen%C3%A7a-MIT-green" alt="Licença MIT">
+  <img src="https://img.shields.io/badge/Licen%C3%A7a-MIT-green" alt="Tópicos Avançados em S.I.">
 </p>
 
 > Projeto de plataforma web/mobile para centralizar e facilitar a busca e notificação de animais perdidos e encontrados. Conceito inicial pensado durante o hackathon **Hacker Cidadão 10.0** e aprimorado/terminado durante a cadeira de Tópicos Avançados em Sistemas de Informação, no último período do curso.
