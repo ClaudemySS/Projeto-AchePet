@@ -31,8 +31,6 @@ O **AchePet** nasceu da dificuldade que tutores de pets enfrentam ao perder seus
 
 ## 💻 Tecnologias Utilizadas
 
-Liste aqui as tecnologias que vocês usaram. Fica "bonito" usar emojis ou ícones.
-
 * **Frontend:** JS, Tailwind CSS, etc.
 * **Backend:** PHP, Java, etc.
 * **Banco de Dados:** MySQL.
@@ -42,8 +40,6 @@ Liste aqui as tecnologias que vocês usaram. Fica "bonito" usar emojis ou ícone
 -----
 
 ## 👥 Autores
-
-Esta é a parte importante para o portfólio\!
 
   * **[Claudemy Severio]** - [[LinkedIn](https://www.linkedin.com/in/devclaudemysev%C3%A9rio?lipi=urn%3Ali%3Apage%3Ad_flagship3_profile_view_base_contact_details%3ByGiti7tZQtqeNyMTRXbiew%3D%3D)]
   * **[Rafael Gomes]** - [[LinkedIn](https://www.linkedin.com/in/rafael-gomes-ba2169234?lipi=urn%3Ali%3Apage%3Ad_flagship3_profile_view_base_contact_details%3BEGcJOTPGTf6tvcfCD3Lgag%3D%3D)]
