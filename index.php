@@ -10,16 +10,16 @@ $user_name = $_SESSION['user_name'] ?? null;
 // --- LÓGICA: Buscar pets em destaque e perdidos ---
 try {
     $select_pets = $conn->prepare("
-        SELECT p.id, p.nome, p.status, p.destaque, p.local_desaparecimento, p.atualizado_em, pi.img_url 
-        FROM pets p 
+        SELECT p.id, p.nome, p.status, p.destaque, p.local_desaparecimento, p.atualizado_em, pi.img_url
+        FROM pets p
         LEFT JOIN (
             -- Sub-consulta para pegar apenas UMA imagem (a primeira) por pet
-            SELECT pet_id, img_url 
-            FROM pet_images 
+            SELECT pet_id, img_url
+            FROM pet_images
             GROUP BY pet_id
         ) pi ON p.id = pi.pet_id
         WHERE p.status = 'Perdido' OR p.destaque = 1
-        ORDER BY 
+        ORDER BY
             p.destaque DESC, -- Destaque vem primeiro
             p.data_cadastro DESC -- Mais recentes primeiro
         LIMIT 4 -- Limitar a 4 para a página inicial
@@ -34,15 +34,15 @@ try {
 // --- NOVA LÓGICA: Buscar pets para ADOÇÃO ---
 try {
     $select_adocao = $conn->prepare("
-        SELECT p.id, p.nome, p.status, p.local_desaparecimento, p.atualizado_em, pi.img_url 
-        FROM pets p 
+        SELECT p.id, p.nome, p.status, p.local_desaparecimento, p.atualizado_em, pi.img_url
+        FROM pets p
         LEFT JOIN (
-            SELECT pet_id, img_url 
-            FROM pet_images 
+            SELECT pet_id, img_url
+            FROM pet_images
             GROUP BY pet_id
         ) pi ON p.id = pi.pet_id
         WHERE TRIM(LOWER(p.status)) = 'adoção' -- CORRIGIDO: Procurando por 'adoção'
-        ORDER BY 
+        ORDER BY
             p.data_cadastro DESC -- Mais recentes primeiro
         LIMIT 4 -- Limitar a 4 para a página inicial
     ");
@@ -76,7 +76,7 @@ $banner_images = [
   <!-- Font Awesome (Ícones) -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.1.1/css/all.min.css">
   <style>
-    body { 
+    body {
         font-family: 'Inter', sans-serif;
         background-color: #F0F9FF; /* Fundo azul claro */
     }
@@ -92,10 +92,15 @@ $banner_images = [
 
   <!-- Header -->
   <header class="flex justify-between items-center w-full px-4 py-3 bg-white shadow-sm sticky top-0 z-50">
-    <h1 class="text-2xl font-extrabold">
-      <span class="text-orange-600">ACHE</span>
-      <span class="text-yellow-500">PET!</span>
-    </h1>
+   <!-- MODIFICADO: Adicionado link para home e logo -->
+   <a href="index.php" class="flex items-center gap-2"> <!-- 'gap-2' adiciona espaço -->
+<img src="/logo.png" alt="Logo AchePet" class="h-12 w-12 rounded-full"> <!-- Logo (Caminho absoluto) -->
+<h1 class="text-2xl font-extrabold">
+    <span class="text-orange-600">ACHE</span>
+    <span class="text-yellow-500">PET!</span>
+</h1>
+</a>
+<!-- Fim da Modificação -->
     <div class="flex flex-col items-center text-sm">
       <div class="w-8 h-8 bg-sky-200 rounded-full flex items-center justify-center">
         <?php if($user_id): ?>
@@ -112,12 +117,12 @@ $banner_images = [
   <!-- Container Principal -->
   <main class="w-full max-w-5xl mx-auto px-4 py-8">
 
-    <!-- 
-      CORREÇÃO: Banner agora é um slideshow 
+    <!--
+      CORREÇÃO: Banner agora é um slideshow
     -->
     <div class="w-full mt-2 relative rounded-xl shadow-lg overflow-hidden h-48 md:h-80" id="banner-slider">
         <?php foreach ($banner_images as $index => $img_url): ?>
-            <img src="<?php echo htmlspecialchars($img_url); ?>" 
+            <img src="<?php echo htmlspecialchars($img_url); ?>"
                  alt="Banner Pet <?php echo $index + 1; ?>"
                  class="banner-slide absolute top-0 left-0 w-full h-full object-cover transition-opacity duration-1000 ease-in-out <?php echo $index == 0 ? 'opacity-100' : 'opacity-0'; ?>"
                  onerror="this.style.display='none'"> <!-- Esconde se a imagem falhar -->
@@ -125,7 +130,7 @@ $banner_images = [
     </div>
     <!-- Fim do Banner Slideshow -->
 
-    <!-- 
+    <!--
       SEÇÃO: Achados e Perdidos (Dinâmico)
     -->
     <div class="w-full mt-6">
@@ -151,8 +156,8 @@ $banner_images = [
               
               <!-- Imagem com status -->
               <div class="relative">
-                <img src="<?php echo htmlspecialchars($pet['img_url'] ?? 'https://placehold.co/300x300/E2E8F0/333?text=Sem+Foto'); ?>" 
-                     alt="Foto de <?php echo htmlspecialchars($pet['nome']); ?>" 
+                <img src="<?php echo htmlspecialchars($pet['img_url'] ?? 'https://placehold.co/300x300/E2E8F0/333?text=Sem+Foto'); ?>"
+                     alt="Foto de <?php echo htmlspecialchars($pet['nome']); ?>"
                      class="w-full h-32 md:h-40 object-cover"
                      onerror="this.src='https://placehold.co/300x300/E2E8F0/333?text=Erro'">
                 
@@ -190,7 +195,7 @@ $banner_images = [
     </div>
 
 
-    <!-- 
+    <!--
         *** SEÇÃO RESTAURADA E CORRIGIDA ***
         SEÇÃO: Pets para Doação (Dinâmico)
     -->
@@ -217,8 +222,8 @@ $banner_images = [
               
               <!-- Imagem com status -->
               <div class="relative">
-                <img src="<?php echo htmlspecialchars($pet['img_url'] ?? 'https://placehold.co/300x300/E2E8F0/333?text=Sem+Foto'); ?>" 
-                     alt="Foto de <?php echo htmlspecialchars($pet['nome']); ?>" 
+                <img src="<?php echo htmlspecialchars($pet['img_url'] ?? 'https://placehold.co/300x300/E2E8F0/333?text=Sem+Foto'); ?>"
+                     alt="Foto de <?php echo htmlspecialchars($pet['nome']); ?>"
                      class="w-full h-32 md:h-40 object-cover"
                      onerror="this.src='https://placehold.co/300x300/E2E8F0/333?text=Erro'">
                 
@@ -232,7 +237,7 @@ $banner_images = [
               <div class="p-3">
                 <h4 class="text-md md:text-lg font-bold text-sky-900 truncate"><?php echo htmlspecialchars($pet['nome']); ?></h4>
                 <!-- Usando 'local_desaparecimento' como local, ajuste se o campo for outro -->
-                <p class="text-xs text-gray-500 truncate"><?php echo htmlspecialchars($pet['local_desaparecimento']); ?></p> 
+                <p class="text-xs text-gray-500 truncate"><?php echo htmlspecialchars($pet['local_desaparecimento']); ?></p>
                 <p class="text-xs text-gray-500 mt-1"><?php echo htmlspecialchars($pet['atualizado_em']); ?> atrás</p>
               </div>
             </a>
@@ -247,16 +252,19 @@ $banner_images = [
 
   </main> <!-- Fim do Container Principal -->
 
-  <!-- 
-    Menu inferior 
+  <!--
+    Menu inferior
   -->
   <nav class="fixed bottom-0 w-full bg-yellow-400 flex justify-between items-center px-6 py-2 shadow-inner-top z-40" style="box-shadow: 0 -2px 5px rgba(0,0,0,0.1);">
-    <a href="#" class="flex flex-col items-center text-sky-900 font-bold">
+    
+    <!-- *** MODIFICADO: Link aponta para map.php *** -->
+    <a href="map.php" class="flex flex-col items-center text-sky-900 font-bold">
       📍
       <span class="text-sm">PETS NO MAPA</span>
     </a>
+    <!-- *** FIM DA MODIFICAÇÃO *** -->
 
-    <!-- 
+    <!--
       Botão da Câmera (agora um <label> para o input escondido)
     -->
     <label for="cameraInput" id="cameraButton" class="relative -mt-8 bg-white w-16 h-16 rounded-full flex items-center justify-center shadow-lg border-4 border-yellow-400 cursor-pointer">
@@ -264,7 +272,7 @@ $banner_images = [
       <span class="absolute text-xl -top-2 -right-2 text-sky-700">+</span>
     </label>
 
-    <!-- 
+    <!--
       Link de "PET PERDIDO" (apontando para a lista)
     -->
     <a href="view_all_pets.php" class="flex flex-col items-center text-sky-900 font-bold">
@@ -273,12 +281,13 @@ $banner_images = [
     </a>
   </nav>
 
-  <!-- 
-    Input de Câmera Escondido 
+  <!--
+    Input de Câmera Escondido
   -->
-  <input type="file" accept="image/*" capture="user" id="cameraInput">
+  <!-- MODIFICADO: removido 'capture="user"' para permitir escolha (Câmera ou Galeria) -->
+  <input type="file" accept="image/*" id="cameraInput">
 
-  <!-- 
+  <!--
     JavaScript para Câmera e Slideshow
   -->
   <script>
@@ -305,7 +314,7 @@ $banner_images = [
     // --- Fim do Script do Slideshow ---
 
 
-    // --- Script da Câmera (Com Compressão) ---
+    // --- Script da Câmera (Com Compressão e Upload AJAX) ---
     
     // Passa o status do login (ID do usuário) do PHP para o JavaScript
     const USER_LOGGED_IN = <?php echo json_encode(isset($user_id)); ?>;
@@ -313,21 +322,22 @@ $banner_images = [
     // Elementos
     const cameraButton = document.getElementById('cameraButton');
     const cameraInput = document.getElementById('cameraInput');
+    let loadingOverlay = null; // Variável para o overlay
 
     // 1. O que acontece quando o botão da câmera é clicado
     cameraButton.addEventListener('click', function (event) {
         // Se o usuário NÃO está logado...
         if (!USER_LOGGED_IN) {
             // ...Impede a câmera de abrir...
-            event.preventDefault(); 
+            event.preventDefault();
             // ...e envia ele para o login.
-            alert('Você precisa estar logado para cadastrar um pet!');
+            console.log('Usuário não logado. Redirecionando para login...');
             window.location.href = 'user_login.php';
         }
         // Se estiver logado, o clique no <label> já abre o <input> da câmera.
     });
 
-    // 2. O que acontece depois que o usuário tira a foto
+    // 2. O que acontece depois que o usuário tira a foto (MODIFICADO)
     cameraInput.addEventListener('change', function (event) {
         const file = event.target.files[0];
         if (!file) {
@@ -335,11 +345,13 @@ $banner_images = [
         }
 
         // Mostra um "Carregando..."
-        const loadingOverlay = document.createElement('div');
-        loadingOverlay.id = 'loading-overlay';
-        loadingOverlay.style = "position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); color: white; display: flex; align-items: center; justify-content: center; z-index: 9999; font-family: Inter, sans-serif; font-size: 1.2rem;";
+        if (!loadingOverlay) {
+            loadingOverlay = document.createElement('div');
+            loadingOverlay.id = 'loading-overlay';
+            loadingOverlay.style = "position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); color: white; display: flex; align-items: center; justify-content: center; z-index: 9999; font-family: Inter, sans-serif; font-size: 1.2rem;";
+            document.body.appendChild(loadingOverlay);
+        }
         loadingOverlay.textContent = 'Processando foto...';
-        document.body.appendChild(loadingOverlay);
 
         // --- LÓGICA DE COMPRESSÃO ---
         const reader = new FileReader();
@@ -347,10 +359,10 @@ $banner_images = [
             const img = new Image();
             img.onload = function() {
                 const canvas = document.createElement('canvas');
-                const ctx = canvas.getContext('2d');
+                const ctx = canvas.getContext('2d'); // Corrigido de 'd2' para '2d'
 
-                // Define o tamanho máximo (ex: 1080 pixels)
-                const MAX_SIZE = 1080;
+                // Define o tamanho máximo (ex: 800 pixels)
+                const MAX_SIZE = 800; // Tamanho razoável
                 let width = img.width;
                 let height = img.height;
 
@@ -373,30 +385,54 @@ $banner_images = [
                 // Desenha a imagem redimensionada no canvas
                 ctx.drawImage(img, 0, 0, width, height);
                 
-                // Converte o canvas para um Data URL (Base64) com compressão (JPEG, 80% de qualidade)
-                const compressedImageData = canvas.toDataURL('image/jpeg', 0.8);
-
-                try {
-                    // Salva a imagem COMPRIMIDA na memória temporária
-                    sessionStorage.setItem('newPetImage', compressedImageData);
+                // Converte o canvas para um Blob
+                canvas.toBlob(function(blob) {
                     
-                    // Redireciona para a página do formulário
-                    window.location.href = 'pet_register.php';
+                    const formData = new FormData();
+                    formData.append('petImage', blob, 'pet.jpg'); 
 
-                } catch (error) {
-                    // Se der erro (mesmo comprimido)
-                    alert('Erro ao processar a imagem. A foto pode ser muito grande.');
-                    loadingOverlay.remove();
-                }
+                    loadingOverlay.textContent = 'Enviando...';
+
+                    // Envia o Blob para o script PHP (SEM a barra "/", pois não usamos mais .htaccess)
+                    fetch('ajax_upload_image.php', {
+                        method: 'POST',
+                        body: formData
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success && data.filePath) {
+                            // SUCESSO! Salva SÓ O CAMINHO na sessionStorage
+                            sessionStorage.setItem('newPetImagePath', data.filePath);
+                            // Redireciona para a página do formulário
+                            window.location.href = 'pet_register.php';
+                        } else {
+                            // Erro retornado pelo PHP
+                            console.error('Erro no servidor:', data.error);
+                            if (loadingOverlay) loadingOverlay.remove();
+                            loadingOverlay = null;
+                        }
+                    })
+                    .catch(error => {
+                        // Erro de rede ou de fetch
+                        console.error('Erro de rede:', error);
+                        if (loadingOverlay) loadingOverlay.remove();
+                        loadingOverlay = null;
+                    });
+
+                }, 'image/jpeg', 0.7); // Qualidade de 70%
             };
             img.src = e.target.result;
         };
         reader.onerror = function () {
-            alert('Falha ao ler o arquivo de imagem.');
-            loadingOverlay.remove();
+            console.error('Falha ao ler o arquivo de imagem.');
+            if (loadingOverlay) loadingOverlay.remove();
+            loadingOverlay = null;
         };
         // Lê o arquivo
         reader.readAsDataURL(file);
+        
+        // Limpa o valor do input para permitir selecionar a mesma foto novamente
+        event.target.value = null;
     });
   </script>
 

@@ -19,108 +19,111 @@ $message = []; // Array para guardar mensagens de feedback
 
 // --- LÓGICA DE CADASTRO (Quando o formulário é enviado) ---
 if(isset($_POST['submit'])){
-   
-   // Coleta todos os dados do formulário
-   $name = filter_var($_POST['name'], FILTER_SANITIZE_STRING);
-   
-   // --- CAMPO OBRIGATÓRIO DE TELEFONE ---
-   $contato_telefone_raw = $_POST['contato_telefone'] ?? '';
-   // Limpa caracteres não numéricos (parênteses, traços, espaços)
-   $contato_telefone_digits = preg_replace('/[^0-9]/', '', $contato_telefone_raw);
+    
+    // Coleta todos os dados do formulário
+    $name = filter_var($_POST['name'], FILTER_SANITIZE_STRING);
+    
+    // --- CAMPO OBRIGATÓRIO DE TELEFONE ---
+    $contato_telefone_raw = $_POST['contato_telefone'] ?? '';
+    // Limpa caracteres não numéricos (parênteses, traços, espaços)
+    $contato_telefone_digits = preg_replace('/[^0-9]/', '', $contato_telefone_raw);
 
-   if(empty($contato_telefone_digits)){
-       $message[] = 'O campo Telefone de Contato é obrigatório!';
-   } 
-   // --- VALIDAÇÃO DE 11 DÍGITOS ---
-   elseif(strlen($contato_telefone_digits) != 11){
-       $message[] = 'Telefone inválido! Por favor, inclua 2 dígitos do DDD e 9 dígitos do número (Total de 11 dígitos).';
-   }
-   // ------------------------------------
-   
-   // Sanitiza a versão original (com máscara) para salvar no banco
-   $contato_telefone = filter_var($contato_telefone_raw, FILTER_SANITIZE_STRING);
-   // -------------------------------
+    if(empty($contato_telefone_digits)){
+        $message[] = 'O campo Telefone de Contato é obrigatório!';
+    } 
+    // --- VALIDAÇÃO DE 11 DÍGITOS ---
+    elseif(strlen($contato_telefone_digits) != 11){
+        $message[] = 'Telefone inválido! Por favor, inclua 2 dígitos do DDD e 9 dígitos do número (Total de 11 dígitos).';
+    }
+    // ------------------------------------
+    
+    // Sanitiza a versão original (com máscara) para salvar no banco
+    $contato_telefone = filter_var($contato_telefone_raw, FILTER_SANITIZE_STRING);
+    // -------------------------------
 
-   $status = filter_var($_POST['status'], FILTER_SANITIZE_STRING);
-   $genero = filter_var($_POST['genero'], FILTER_SANITIZE_STRING);
-   $especie = filter_var($_POST['especie'], FILTER_SANITIZE_STRING);
-   $raca = filter_var($_POST['raca'], FILTER_SANITIZE_STRING);
-   $idade = filter_var($_POST['idade'], FILTER_SANITIZE_STRING);
-   $porte = filter_var($_POST['porte'], FILTER_SANITIZE_STRING);
-   $cor_predominante = filter_var($_POST['cor_predominante'], FILTER_SANITIZE_STRING);
-   $cor_olhos = filter_var($_POST['cor_olhos'], FILTER_SANITIZE_STRING);
-   $data_desaparecimento = filter_var($_POST['data_desaparecimento'], FILTER_SANITIZE_STRING);
-   $local_desaparecimento = filter_var($_POST['local_desaparecimento'], FILTER_SANITIZE_STRING);
-   $ponto_referencia = filter_var($_POST['ponto_referencia'], FILTER_SANITIZE_STRING);
-   $comentario_tutor = filter_var($_POST['comentario_tutor'], FILTER_SANITIZE_STRING);
-   $paga_recompensa = filter_var($_POST['paga_recompensa'], FILTER_VALIDATE_INT);
-   $destaque = filter_var($_POST['destaque'], FILTER_VALIDATE_INT);
-   
-   // --- LÓGICA DE UPLOAD DA IMAGEM ---
-   $image_data_b64 = $_POST['imageData'] ?? null;
-   $image_filename = '';
+    $status = filter_var($_POST['status'], FILTER_SANITIZE_STRING);
+    $genero = filter_var($_POST['genero'], FILTER_SANITIZE_STRING);
+    $especie = filter_var($_POST['especie'], FILTER_SANITIZE_STRING);
+    $raca = filter_var($_POST['raca'], FILTER_SANITIZE_STRING);
+    $idade = filter_var($_POST['idade'], FILTER_SANITIZE_STRING);
+    $porte = filter_var($_POST['porte'], FILTER_SANITIZE_STRING);
+    $cor_predominante = filter_var($_POST['cor_predominante'], FILTER_SANITIZE_STRING);
+    $cor_olhos = filter_var($_POST['cor_olhos'], FILTER_SANITIZE_STRING);
+    $data_desaparecimento = filter_var($_POST['data_desaparecimento'], FILTER_SANITIZE_STRING);
+    $local_desaparecimento = filter_var($_POST['local_desaparecimento'], FILTER_SANITIZE_STRING);
+    $ponto_referencia = filter_var($_POST['ponto_referencia'], FILTER_SANITIZE_STRING);
+    $comentario_tutor = filter_var($_POST['comentario_tutor'], FILTER_SANITIZE_STRING);
+    $paga_recompensa = filter_var($_POST['paga_recompensa'], FILTER_VALIDATE_INT);
+    $destaque = filter_var($_POST['destaque'], FILTER_VALIDATE_INT);
+    
+    // --- MODIFICADO: Captura de Latitude e Longitude ---
+    $latitude = filter_var($_POST['latitude'], FILTER_SANITIZE_STRING);
+    $longitude = filter_var($_POST['longitude'], FILTER_SANITIZE_STRING);
 
-   if ($image_data_b64) {
-       if (preg_match('/^data:image\/(\w+);base64,/', $image_data_b64, $type)) {
-           $data = substr($image_data_b64, strpos($image_data_b64, ',') + 1);
-           $image_data = base64_decode($data);
-           $type = strtolower($type[1]); // jpg, png, gif
+    if(empty($latitude) || empty($longitude)){
+        $message[] = 'Você precisa marcar a localização exata no mapa!';
+    }
+    // --- FIM DA MODIFIFICAÇÃO ---
 
-           if (!in_array($type, ['jpg', 'jpeg', 'png'])) {
-               $message[] = 'Formato de imagem inválido.';
-           } else {
-               $image_filename = uniqid('pet_', true) . '.' . $type;
-               if(!file_put_contents('uploaded_img/' . $image_filename, $image_data)){
-                   $message[] = 'Erro ao salvar a imagem no servidor.';
-               }
-           }
-       } else {
-           $message[] = 'Erro: Formato de dados da imagem inválido.';
-       }
-   } else {
-       $message[] = 'Erro: Nenhuma imagem foi enviada.';
-   }
+    // --- LÓGICA DE UPLOAD DA IMAGEM (MODIFICADA) ---
+    // A imagem JÁ FOI ENVIADA (AJAX) e salva pelo ajax_upload_image.php.
+    // Estamos apenas pegando o CAMINHO (path) que o JS colocou no input escondido.
+    $image_path_to_db = filter_var($_POST['imagePath'], FILTER_SANITIZE_STRING); // <-- MODIFICADO
 
-   // Se não houver mensagens de erro, continua
-   if(empty($message)) {
-        try {
-            // 1. Insere o Pet na tabela `pets`
-            $insert_pet = $conn->prepare("INSERT INTO `pets`
-                (tutor_id, nome, status, genero, especie, raca, idade, porte, cor_predominante, cor_olhos, 
-                 data_desaparecimento, local_desaparecimento, ponto_referencia, comentario_tutor, contato_telefone,
-                 paga_recompensa, destaque, id_achepet, atualizado_em) 
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+    if (empty($image_path_to_db)) {
+        $message[] = 'Erro: Nenhuma imagem foi enviada. Por favor, volte e tente novamente.';
+    } elseif (!file_exists($image_path_to_db)) {
+        // Checagem de segurança
+        $message[] = 'Erro: Arquivo de imagem não encontrado no servidor. Tente novamente.';
+        $image_path_to_db = ''; // Limpa para não salvar um link quebrado
+    }
+    // --- FIM DA LÓGICA MODIFICADA ---
+
+    // Se não houver mensagens de erro, continua
+    if(empty($message)) {
+         try {
+             // 1. Insere o Pet na tabela `pets` (MODIFICADO para incluir lat/lon)
+             $insert_pet = $conn->prepare("INSERT INTO `pets`
+                 (tutor_id, nome, status, genero, especie, raca, idade, porte, cor_predominante, cor_olhos, 
+                  data_desaparecimento, local_desaparecimento, ponto_referencia, 
+                  latitude, longitude, /* <-- NOVAS COLUNAS */
+                  comentario_tutor, contato_telefone,
+                  paga_recompensa, destaque, id_achepet, atualizado_em) 
+                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"); // <-- 21 VALORES
             
-            $id_achepet = 'ACHE' . rand(10000, 99999);
-            $atualizado_em = 'agora';
+             $id_achepet = 'ACHE' . rand(10000, 99999);
+             $atualizado_em = 'agora';
             
-            $insert_pet->execute([
-                $tutor_id, $name, $status, $genero, $especie, $raca, $idade, $porte,
-                $cor_predominante, $cor_olhos, $data_desaparecimento,
-                $local_desaparecimento, $ponto_referencia, $comentario_tutor, $contato_telefone, // Salva o telefone com máscara
-                $paga_recompensa, $destaque, $id_achepet, $atualizado_em
-            ]);
+             $insert_pet->execute([
+                 $tutor_id, $name, $status, $genero, $especie, $raca, $idade, $porte,
+                 $cor_predominante, $cor_olhos, $data_desaparecimento,
+                 $local_desaparecimento, $ponto_referencia,
+                 $latitude, $longitude, // <-- NOVOS VALORES
+                 $comentario_tutor, $contato_telefone, 
+                 $paga_recompensa, $destaque, $id_achepet, $atualizado_em
+             ]); // <-- 21 VALORES
             
-            $new_pet_id = $conn->lastInsertId();
+             $new_pet_id = $conn->lastInsertId();
 
-            // 2. Insere a imagem na tabela `pet_images`
-            if ($new_pet_id && !empty($image_filename)) {
-                $insert_image = $conn->prepare("INSERT INTO `pet_images` (pet_id, img_url) VALUES (?, ?)");
-                $image_path_to_db = 'uploaded_img/' . $image_filename;
-                $insert_image->execute([$new_pet_id, $image_path_to_db]);
-            }
+             // 2. Insere a imagem na tabela `pet_images` (LÓGICA MODIFICADA)
+             if ($new_pet_id && !empty($image_path_to_db)) { // <-- Condição modificada
+                 $insert_image = $conn->prepare("INSERT INTO `pet_images` (pet_id, img_url) VALUES (?, ?)");
+                 // $image_path_to_db já é o caminho correto (ex: "uploaded_img/pet_123.jpg")
+                 $insert_image->execute([$new_pet_id, $image_path_to_db]); // <-- Variável modificada
+             }
 
-            // 3. Redireciona para o perfil do novo pet
-            header('location:perfil_pet.php?id=' . $new_pet_id);
-            exit;
+             // 3. Redireciona para o perfil do novo pet
+             header('location:perfil_pet.php?id=' . $new_pet_id);
+             exit;
 
-        } catch (Exception $e) {
-            $message[] = 'Erro ao cadastrar o pet: ' . $e->getMessage();
-            if (!empty($image_filename)) {
-                @unlink('uploaded_img/' . $image_filename);
-            }
-        }
-   }
+         } catch (Exception $e) {
+             $message[] = 'Erro ao cadastrar o pet: ' . $e->getMessage();
+             // Boa prática: se o cadastro falhar, remove a imagem órfã
+             if (!empty($image_path_to_db)) {
+                 @unlink($image_path_to_db); // <-- MODIFICADO
+             }
+         }
+    }
 }
 ?>
 
@@ -136,11 +139,24 @@ if(isset($_POST['submit'])){
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <!-- Font Awesome (Ícones) -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.1.1/css/all.min.css">
+    
+    <!-- *** CSS do Mapa Leaflet *** -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+     integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
+     crossorigin=""/>
+    <!-- *** FIM DO CSS *** -->
+
     <style>
         body { 
             font-family: 'Inter', sans-serif;
             background-color: #E0F2FE; /* bg-sky-100 */
         }
+        /* *** Estilo para o Mapa *** */
+        #map {
+            height: 300px; /* Altura do mapa */
+            z-index: 10;   /* Garante que o mapa fique visível */
+        }
+        /* *** FIM DO ESTILO *** */
     </style>
 </head>
 <body class="min-h-screen pb-12">
@@ -163,7 +179,7 @@ if(isset($_POST['submit'])){
 
         <!-- Visualização da Imagem da Câmera -->
         <div class="mb-6 w-full max-w-2xl">
-            <label class="block text-sm font-semibold text-gray-600 mb-2 text-center">Foto Tirada</label>
+            <label class="block text-sm font-semibold text-gray-600 mb-2 text-center">Foto Selecionada</label> <!-- Texto modificado -->
             <div class="flex justify-center">
                 <img src="https://placehold.co/400x300/E2E8F0/333?text=Carregando+Foto..." 
                      alt="Foto do Pet" 
@@ -176,16 +192,20 @@ if(isset($_POST['submit'])){
         <?php
         if(!empty($message)){
             foreach($message as $msg){
-                echo '<div class="w-full max-w-2xl p-4 mb-4 text-center rounded-lg bg-red-100 text-red-700">'.$msg.'</div>';
+                 // *** MODIFICADO: Adicionado ID para controle do JS ***
+                echo '<div class="w-full max-w-2xl p-4 mb-4 text-center rounded-lg bg-red-100 text-red-700" id="error-message">'.$msg.'</div>';
             }
         }
         ?>
+        <!-- *** NOVO: Placeholder para mensagens de JS *** -->
+        <div id="js-message-placeholder" class="w-full max-w-2xl"></div>
+
 
         <!-- Formulário de Cadastro -->
         <form action="" method="post" class="w-full max-w-2xl bg-white p-6 rounded-xl shadow-lg">
             
-            <!-- Input escondido para enviar a foto em Base64 -->
-            <input type="hidden" name="imageData" id="imageData">
+            <!-- MODIFICADO: Input escondido para enviar o *caminho* da imagem -->
+            <input type="hidden" name="imagePath" id="imagePathInput">
 
             <!-- --- Seção de Informações do Tutor --- -->
             <div class="mb-6 border-b border-gray-200 pb-4">
@@ -311,9 +331,17 @@ if(isset($_POST['submit'])){
 
                 <!-- Campo Local Desaparecimento (Full Width) -->
                 <div class="md:col-span-2">
-                    <label class="block text-sm font-semibold text-gray-600 mb-1">Local (Onde foi visto?)</label>
-                    <input type="text" name="local_desaparecimento" placeholder="Ex: Rua A, Bairro B, São Paulo" required
+                    <label class="block text-sm font-semibold text-gray-600 mb-1">Endereço de Referência</label>
+                     <!-- *** MODIFICADO: Adicionado ID 'addressInput' *** -->
+                    <input type="text" name="local_desaparecimento" id="addressInput" placeholder="Ex: Rua A, Bairro B, São Paulo (Apenas texto)" required
                            class="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-500">
+                    
+                    <!-- *** NOVO BOTÃO DE BUSCA *** -->
+                    <button type="button" id="searchAddressButton"
+                            class="w-full mt-2 bg-sky-600 text-white font-semibold py-2 px-4 rounded-lg shadow hover:bg-sky-700 transition-all">
+                        <i class="fas fa-search mr-2"></i>Buscar Endereço no Mapa
+                    </button>
+                    <!-- *** FIM DO BOTÃO *** -->
                 </div>
 
                 <!-- Campo Ponto de Referência (Full Width) -->
@@ -323,11 +351,22 @@ if(isset($_POST['submit'])){
                            class="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-500">
                 </div>
                 
+                <!-- *** Seção do Mapa (Full Width) *** -->
+                <div class="md:col-span-2">
+                    <label class="block text-sm font-semibold text-gray-600 mb-1">Marque no Mapa (Obrigatório)</label>
+                    <p class="text-xs text-gray-500 mb-2">Clique no local exato onde o pet foi visto. Dê zoom para mais precisão.</p>
+                    <div id="map" class="w-full h-72 rounded-lg border border-gray-300"></div>
+                    <!-- Inputs escondidos para as coordenadas -->
+                    <input type="hidden" name="latitude" id="latitudeInput">
+                    <input type="hidden" name="longitude" id="longitudeInput">
+                </div>
+                <!-- *** FIM DA SEÇÃO DO MAPA *** -->
+
                 <!-- Campo Comentário (Full Width) -->
                 <div class="md:col-span-2">
                     <label class="block text-sm font-semibold text-gray-600 mb-1">Comentário Adicional</label>
                     <textarea name="comentario_tutor" rows="4" placeholder="Ex: Estava usando coleira azul, mancava da pata direita..."
-                              class="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-500"></textarea>
+                               class="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-500"></textarea>
                 </div>
 
             </div> <!-- Fim do Grid -->
@@ -341,28 +380,24 @@ if(isset($_POST['submit'])){
         </form>
     </div>
 
-    <!-- 
-      JavaScript para pegar a imagem da câmera (do sessionStorage) 
-      e colocá-la no formulário.
-    -->
+    <!-- *** JS do Mapa Leaflet *** -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+     integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
+     crossorigin=""></script>
+    <!-- *** FIM DO JS DO MAPA *** -->
+
     <script>
         document.addEventListener('DOMContentLoaded', function() {
-            // Pega a imagem que o index.php salvou
-            const imageData = sessionStorage.getItem('newPetImage');
+            // *** (Início do seu código JavaScript existente - Lógica da Imagem) ***
+            
+            const imagePath = sessionStorage.getItem('newPetImagePath'); 
 
-            if (imageData) {
-                // Mostra a imagem na tag <img>
-                document.getElementById('pet-preview').src = imageData;
-                
-                // Coloca o texto Base64 no input escondido para ser enviado
-                document.getElementById('imageData').value = imageData;
-                
-                // Limpa a memória para não usar a mesma foto duas vezes
-                sessionStorage.removeItem('newPetImage');
+            if (imagePath) {
+                document.getElementById('pet-preview').src = imagePath; 
+                document.getElementById('imagePathInput').value = imagePath; 
+                sessionStorage.removeItem('newPetImagePath'); 
             } else {
-                // Se o usuário chegou aqui sem tirar foto, mostra um erro
                 document.getElementById('pet-preview').src = 'https://placehold.co/400x300/FEE2E2/B91C1C?text=ERRO!+Tire+a+foto+pela+página+inicial.';
-                // Você pode querer desabilitar o botão de submit aqui
                 const submitButton = document.querySelector('button[name="submit"]');
                 if (submitButton) {
                     submitButton.disabled = true;
@@ -371,6 +406,143 @@ if(isset($_POST['submit'])){
                     submitButton.classList.remove('bg-orange-500', 'hover:bg-orange-600');
                 }
             }
+            // *** (Fim do seu código JavaScript existente) ***
+
+
+            // --- INÍCIO: Script do Mapa Leaflet (LÓGICA ATUALIZADA) ---
+            
+            // Pega os inputs escondidos
+            const latInput = document.getElementById('latitudeInput');
+            const lonInput = document.getElementById('longitudeInput');
+            const mapElement = document.getElementById('map');
+            let marker = null;
+            let map;
+
+            // *** NOVOS ELEMENTOS ***
+            const searchButton = document.getElementById('searchAddressButton');
+            const addressInput = document.getElementById('addressInput'); // <-- ID do campo de endereço
+            const messagePlaceholder = document.getElementById('js-message-placeholder'); // <-- Div de mensagens
+
+
+            // Tenta centralizar no Brasil, ou usa uma localização padrão
+            const defaultCenter = [-14.2350, -51.9253]; // Centro do Brasil
+
+            // Z-Index: Garante que o mapa não conflite com outros elementos
+            mapElement.style.zIndex = '10';
+
+            try {
+                map = L.map(mapElement).setView(defaultCenter, 5); // 5 = zoom
+            } catch (e) {
+                console.error("Erro ao iniciar o mapa:", e);
+                mapElement.innerHTML = "Erro ao carregar o mapa. Tente recarregar a página.";
+                return;
+            }
+
+            // Adiciona a camada de mapa (OpenStreetMap)
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+            }).addTo(map);
+
+            // Tenta pegar a localização do usuário para centralizar
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(function(position) {
+                    const userPos = [position.coords.latitude, position.coords.longitude];
+                    map.setView(userPos, 13); // Zoom maior perto do usuário
+                }, function() {
+                    // Usuário negou ou falhou, continua no centro do Brasil
+                    console.log("Falha ao obter geolocalização. Usando padrão.");
+                });
+            }
+
+            // *** FUNÇÃO MODIFICADA: Atualiza os inputs E o marcador ***
+            function updateMapPin(lat, lon, zoomLevel = 15) {
+                // Atualiza os inputs do formulário
+                latInput.value = lat.toFixed(7);
+                lonInput.value = lon.toFixed(7);
+
+                // Remove o marcador antigo se existir
+                if (marker) {
+                    map.removeLayer(marker);
+                }
+
+                // Adiciona um novo marcador
+                marker = L.marker([lat, lon]).addTo(map)
+                    .bindPopup('<b>Local selecionado!</b>')
+                    .openPopup();
+                
+                // Centraliza o mapa no novo pino
+                map.setView([lat, lon], zoomLevel);
+            }
+
+            // Adiciona o listener de clique no mapa (chama a nova função)
+            map.on('click', function(e) {
+                updateMapPin(e.latlng.lat, e.latlng.lng);
+            });
+
+
+            // *** NOVA FUNÇÃO: Buscar Endereço (Geocodificação) ***
+            searchButton.addEventListener('click', async function() {
+                const address = addressInput.value;
+                if (!address) {
+                    showMessage('Por favor, digite um endereço para buscar.', 'error');
+                    return;
+                }
+
+                searchButton.disabled = true;
+                searchButton.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Buscando...';
+                showMessage(''); // Limpa mensagens antigas
+
+                try {
+                    // Usamos o serviço gratuito Nominatim do OpenStreetMap
+                    // 'mailto=' é uma exigência da política de uso para informar um email de contato
+                    // **IMPORTANTE**: Troque 'seu-email-aqui@dominio.com' pelo seu email
+                    const response = await fetch(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(address)}&format=json&limit=1&email=aranhapvp2@hotmail.com`);
+                    
+                    if (!response.ok) {
+                        throw new Error('Serviço de busca de endereço indisponível.');
+                    }
+                    
+                    const data = await response.json();
+
+                    if (data && data.length > 0) {
+                        const result = data[0];
+                        const lat = parseFloat(result.lat);
+                        const lon = parseFloat(result.lon);
+                        
+                        // SUCESSO! Atualiza o mapa
+                        updateMapPin(lat, lon, 16); // Zoom mais próximo para busca
+                        showMessage('Endereço encontrado! Verifique o pino e ajuste se necessário.', 'success');
+
+                    } else {
+                        // Não encontrou
+                        showMessage('Endereço não encontrado. Por favor, seja mais específico ou clique manualmente no mapa.', 'error');
+                    }
+
+                } catch (error) {
+                    console.error('Erro na Geocodificação:', error);
+                    showMessage('Erro ao buscar endereço. Verifique sua conexão ou clique manualmente.', 'error');
+                } finally {
+                    searchButton.disabled = false;
+                    searchButton.innerHTML = '<i class="fas fa-search mr-2"></i>Buscar Endereço no Mapa';
+                }
+            });
+
+            // *** NOVA FUNÇÃO: Mostrar Mensagens (para o JS) ***
+            function showMessage(msg, type = 'success') {
+                // Remove qualquer mensagem de erro do PHP para não duplicar
+                const phpError = document.getElementById('error-message');
+                if (phpError) phpError.style.display = 'none';
+
+                if (!msg) {
+                    messagePlaceholder.innerHTML = ''; // Limpa a mensagem
+                    return;
+                }
+                
+                const bgColor = type === 'success' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700';
+                messagePlaceholder.innerHTML = `<div class="w-full p-4 mb-4 text-center rounded-lg ${bgColor}">${msg}</div>`;
+            }
+
+            // --- FIM: Script do Mapa Leaflet ---
         });
     </script>
 

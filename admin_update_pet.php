@@ -1,6 +1,8 @@
 <?php
 include 'config.php';
 session_start();
+// *** ADICIONADO: Header UTF-8 ***
+header('Content-Type: text/html; charset=utf-8');
 
 // Trava de segurança: Se o admin não estiver logado, chuta para o login.
 $admin_id = $_SESSION['admin_id'] ?? null;
@@ -20,51 +22,69 @@ $message = []; // Array para guardar mensagens de feedback
 
 // --- LÓGICA DE UPDATE (Quando o formulário é enviado) ---
 if(isset($_POST['submit'])){
-   
-   // Coleta e limpa todos os dados do formulário
-   $name = filter_var($_POST['name'], FILTER_SANITIZE_STRING);
-   $status = filter_var($_POST['status'], FILTER_SANITIZE_STRING);
-   $genero = filter_var($_POST['genero'], FILTER_SANITIZE_STRING);
-   $especie = filter_var($_POST['especie'], FILTER_SANITIZE_STRING);
-   $raca = filter_var($_POST['raca'], FILTER_SANITIZE_STRING);
-   $idade = filter_var($_POST['idade'], FILTER_SANITIZE_STRING);
-   $porte = filter_var($_POST['porte'], FILTER_SANITIZE_STRING);
-   $cor_predominante = filter_var($_POST['cor_predominante'], FILTER_SANITIZE_STRING);
-   $cor_olhos = filter_var($_POST['cor_olhos'], FILTER_SANITIZE_STRING);
-   $data_desaparecimento = filter_var($_POST['data_desaparecimento'], FILTER_SANITIZE_STRING);
-   $local_desaparecimento = filter_var($_POST['local_desaparecimento'], FILTER_SANITIZE_STRING);
-   $ponto_referencia = filter_var($_POST['ponto_referencia'], FILTER_SANITIZE_STRING);
-   $comentario_tutor = filter_var($_POST['comentario_tutor'], FILTER_SANITIZE_STRING);
-   
-   // Campos booleanos (0 ou 1)
-   $paga_recompensa = filter_var($_POST['paga_recompensa'], FILTER_VALIDATE_INT);
-   $destaque = filter_var($_POST['destaque'], FILTER_VALIDATE_INT);
+    
+    // Coleta e limpa todos os dados do formulário
+    $name = filter_var($_POST['name'], FILTER_SANITIZE_STRING);
+    $status = filter_var($_POST['status'], FILTER_SANITIZE_STRING);
+    $genero = filter_var($_POST['genero'], FILTER_SANITIZE_STRING);
+    $especie = filter_var($_POST['especie'], FILTER_SANITIZE_STRING);
+    $raca = filter_var($_POST['raca'], FILTER_SANITIZE_STRING);
+    $idade = filter_var($_POST['idade'], FILTER_SANITIZE_STRING);
+    $porte = filter_var($_POST['porte'], FILTER_SANITIZE_STRING);
+    $cor_predominante = filter_var($_POST['cor_predominante'], FILTER_SANITIZE_STRING);
+    $cor_olhos = filter_var($_POST['cor_olhos'], FILTER_SANITIZE_STRING);
+    $data_desaparecimento = filter_var($_POST['data_desaparecimento'], FILTER_SANITIZE_STRING);
+    $local_desaparecimento = filter_var($_POST['local_desaparecimento'], FILTER_SANITIZE_STRING);
+    $ponto_referencia = filter_var($_POST['ponto_referencia'], FILTER_SANITIZE_STRING);
+    $comentario_tutor = filter_var($_POST['comentario_tutor'], FILTER_SANITIZE_STRING);
+    
+    // Campos booleanos (0 ou 1)
+    $paga_recompensa = filter_var($_POST['paga_recompensa'], FILTER_VALIDATE_INT);
+    $destaque = filter_var($_POST['destaque'], FILTER_VALIDATE_INT);
+    
+    // *** ADICIONADO: Captura de Latitude e Longitude ***
+    $latitude = filter_var($_POST['latitude'], FILTER_SANITIZE_STRING);
+    $longitude = filter_var($_POST['longitude'], FILTER_SANITIZE_STRING);
 
-   try {
-        $update_pet = $conn->prepare("UPDATE `pets` SET 
-            nome = ?, status = ?, genero = ?, especie = ?, raca = ?, idade = ?, porte = ?, 
-            cor_predominante = ?, cor_olhos = ?, data_desaparecimento = ?, 
-            local_desaparecimento = ?, ponto_referencia = ?, comentario_tutor = ?, 
-            paga_recompensa = ?, destaque = ?
-            WHERE id = ?");
+    if(empty($latitude) || empty($longitude)){
+        $message[] = 'Você precisa marcar a localização exata no mapa!';
+    }
+    // *** FIM DA ADIÇÃO ***
+
+    // Se não houver mensagens de erro, continua
+    if(empty($message)) {
+       try {
+            // *** MODIFICADO: Query UPDATE para incluir lat/lon ***
+            $update_pet = $conn->prepare("UPDATE `pets` SET 
+                nome = ?, status = ?, genero = ?, especie = ?, raca = ?, idade = ?, porte = ?, 
+                cor_predominante = ?, cor_olhos = ?, data_desaparecimento = ?, 
+                local_desaparecimento = ?, ponto_referencia = ?, comentario_tutor = ?, 
+                paga_recompensa = ?, destaque = ?,
+                latitude = ?, longitude = ? 
+                WHERE id = ?");
+                
+            $update_pet->execute([
+                $name, $status, $genero, $especie, $raca, $idade, $porte,
+                $cor_predominante, $cor_olhos, $data_desaparecimento,
+                $local_desaparecimento, $ponto_referencia, $comentario_tutor,
+                $paga_recompensa, $destaque, 
+                $latitude, $longitude, // <-- Adicionados
+                $pet_id // <-- WHERE
+            ]);
+            // *** FIM DA MODIFICAÇÃO ***
             
-        $update_pet->execute([
-            $name, $status, $genero, $especie, $raca, $idade, $porte,
-            $cor_predominante, $cor_olhos, $data_desaparecimento,
-            $local_desaparecimento, $ponto_referencia, $comentario_tutor,
-            $paga_recompensa, $destaque, $pet_id
-        ]);
-        
-        $message[] = 'Perfil do pet atualizado com sucesso!';
+            $message[] = 'Perfil do pet atualizado com sucesso!';
 
-   } catch (Exception $e) {
-        $message[] = 'Erro ao atualizar o perfil: ' . $e->getMessage();
-   }
+       } catch (Exception $e) {
+            $message[] = 'Erro ao atualizar o perfil: ' . $e->getMessage();
+       }
+    }
 }
 
 // --- LÓGICA DE GET (para preencher o formulário) ---
 // Busca os dados atuais do pet para exibir no formulário
 try {
+    // (A sua query original SELECT * já pega latitude e longitude, está correto)
     $select_pet = $conn->prepare("SELECT * FROM `pets` WHERE id = ?");
     $select_pet->execute([$pet_id]);
     $pet = $select_pet->fetch(PDO::FETCH_ASSOC);
@@ -103,10 +123,19 @@ try {
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <!-- Font Awesome (Ícones) -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.1.1/css/all.min.css">
+    
+    <!-- *** ADICIONADO: CSS do Mapa Leaflet *** -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+
     <style>
         body { 
             font-family: 'Inter', sans-serif;
             background-color: #E0F2FE; /* bg-sky-100 */
+        }
+        /* *** ADICIONADO: Estilo para o Mapa *** */
+        #map {
+            height: 300px; /* Altura do mapa */
+            z-index: 10;
         }
     </style>
 </head>
@@ -145,10 +174,14 @@ try {
             foreach($message as $msg){
                 $is_success = strpos(strtolower($msg), 'sucesso') !== false;
                 $msg_class = $is_success ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700';
-                echo '<div class="w-full max-w-2xl p-4 mb-4 text-center rounded-lg '.$msg_class.'">'.$msg.'</div>';
+                // *** ADICIONADO: ID para controle do JS ***
+                echo '<div class="w-full max-w-2xl p-4 mb-4 text-center rounded-lg '.$msg_class.'" id="error-message">'.$msg.'</div>';
             }
         }
         ?>
+        <!-- *** ADICIONADO: Placeholder para mensagens de JS *** -->
+        <div id="js-message-placeholder" class="w-full max-w-2xl"></div>
+
 
         <!-- Formulário de Edição (max-w-2xl para mais espaço) -->
         <form action="" method="post" class="w-full max-w-2xl bg-white p-6 rounded-xl shadow-lg">
@@ -253,9 +286,16 @@ try {
 
                 <!-- Campo Local Desaparecimento (Full Width) -->
                 <div class="md:col-span-2">
-                    <label class="block text-sm font-semibold text-gray-600 mb-1">Local Desaparecimento</label>
-                    <input type="text" name="local_desaparecimento" value="<?php echo htmlspecialchars($pet['local_desaparecimento']); ?>" 
+                    <label class="block text-sm font-semibold text-gray-600 mb-1">Endereço de Referência (Texto)</label> 
+                    <!-- *** ADICIONADO: id="addressInput" *** -->
+                    <input type="text" name="local_desaparecimento" id="addressInput" value="<?php echo htmlspecialchars($pet['local_desaparecimento']); ?>" 
                            class="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-500">
+                           
+                    <!-- *** ADICIONADO: Botão de Busca *** -->
+                    <button type="button" id="searchAddressButton"
+                            class="w-full mt-2 bg-sky-600 text-white font-semibold py-2 px-4 rounded-lg shadow hover:bg-sky-700 transition-all">
+                        <i class="fas fa-search mr-2"></i>Buscar Endereço no Mapa
+                    </button>
                 </div>
 
                 <!-- Campo Ponto de Referência (Full Width) -->
@@ -264,6 +304,17 @@ try {
                     <input type="text" name="ponto_referencia" value="<?php echo htmlspecialchars($pet['ponto_referencia']); ?>" 
                            class="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-500">
                 </div>
+                
+                <!-- *** ADICIONADO: Seção do Mapa (Full Width) *** -->
+                <div class="md:col-span-2">
+                    <label class="block text-sm font-semibold text-gray-600 mb-1">Marque no Mapa (Obrigatório)</label>
+                    <p class="text-xs text-gray-500 mb-2">Clique para redefinir o local ou use a busca de endereço.</p>
+                    <div id="map" class="w-full h-72 rounded-lg border border-gray-300"></div>
+                    <!-- Inputs escondidos para as coordenadas -->
+                    <input type="hidden" name="latitude" id="latitudeInput" value="<?php echo htmlspecialchars($pet['latitude']); ?>">
+                    <input type="hidden" name="longitude" id="longitudeInput" value="<?php echo htmlspecialchars($pet['longitude']); ?>">
+                </div>
+                <!-- *** FIM DA ADIÇÃO *** -->
                 
                 <!-- Campo Comentário (Full Width) -->
                 <div class="md:col-span-2">
@@ -283,6 +334,161 @@ try {
         </form>
     </div>
 
+    <!-- *** ADICIONADO: JS do Mapa Leaflet *** -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            
+            // Pega os dados do pet (latitude e longitude) que o PHP buscou
+            const currentLat = <?php echo json_encode($pet['latitude'] ?? null); ?>;
+            const currentLon = <?php echo json_encode($pet['longitude'] ?? null); ?>;
+
+            // Pega os inputs escondidos
+            const latInput = document.getElementById('latitudeInput');
+            const lonInput = document.getElementById('longitudeInput');
+            const mapElement = document.getElementById('map');
+            let marker = null;
+            let map;
+
+            // Elementos da Busca
+            const searchButton = document.getElementById('searchAddressButton');
+            const addressInput = document.getElementById('addressInput');
+            const messagePlaceholder = document.getElementById('js-message-placeholder');
+
+
+            // Tenta centralizar no Brasil, ou usa uma localização padrão
+            const defaultCenter = [-14.2350, -51.9253]; // Centro do Brasil
+
+            // Z-Index
+            if(mapElement) {
+                mapElement.style.zIndex = '10';
+            } else {
+                console.error("Elemento 'map' não encontrado.");
+                return; // Para o script se o mapa não existir
+            }
+
+
+            try {
+                // Inicia o mapa
+                map = L.map(mapElement).setView(defaultCenter, 5);
+            } catch (e) {
+                console.error("Erro ao iniciar o mapa:", e);
+                mapElement.innerHTML = "Erro ao carregar o mapa. Tente recarregar a página.";
+                return;
+            }
+
+            // Adiciona a camada de mapa (OpenStreetMap)
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+            }).addTo(map);
+
+
+            // --- LÓGICA DE INICIALIZAÇÃO DO MAPA ---
+            // Se o pet JÁ TEM coordenadas salvas, centraliza e marca o pino nele
+            if (currentLat && currentLon) {
+                const petPos = [parseFloat(currentLat), parseFloat(currentLon)];
+                map.setView(petPos, 16); // Zoom próximo
+                updateMapPin(petPos[0], petPos[1]); // Chama a função para criar o pino
+            } else {
+                // Se o pet NÃO tem coordenadas, tenta pegar a localização do admin
+                if (navigator.geolocation) {
+                    navigator.geolocation.getCurrentPosition(function(position) {
+                        const userPos = [position.coords.latitude, position.coords.longitude];
+                        map.setView(userPos, 13);
+                    }, function() {
+                        console.log("Falha ao obter geolocalização. Usando padrão.");
+                    });
+                }
+            }
+            // --- FIM DA LÓGICA DE INICIALIZAÇÃO ---
+
+
+            // *** FUNÇÃO: Atualiza os inputs E o marcador ***
+            function updateMapPin(lat, lon, zoomLevel = 16) {
+                // Atualiza os inputs do formulário
+                latInput.value = lat.toFixed(7);
+                lonInput.value = lon.toFixed(7);
+
+                // Remove o marcador antigo se existir
+                if (marker) {
+                    map.removeLayer(marker);
+                }
+
+                // Adiciona um novo marcador
+                marker = L.marker([lat, lon]).addTo(map)
+                    .bindPopup('<b>Local selecionado!</b>')
+                    .openPopup();
+                
+                // Centraliza o mapa no novo pino
+                map.setView([lat, lon], zoomLevel);
+            }
+
+            // Adiciona o listener de clique no mapa (chama a nova função)
+            map.on('click', function(e) {
+                updateMapPin(e.latlng.lat, e.latlng.lng);
+            });
+
+
+            // *** FUNÇÃO: Buscar Endereço (Geocodificação) ***
+            searchButton.addEventListener('click', async function() {
+                const address = addressInput.value;
+                if (!address) {
+                    showMessage('Por favor, digite um endereço para buscar.', 'error');
+                    return;
+                }
+
+                searchButton.disabled = true;
+                searchButton.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Buscando...';
+                showMessage(''); // Limpa mensagens antigas
+
+                try {
+                    // **IMPORTANTE**: Email de contato para a API
+                    const response = await fetch(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(address)}&format=json&limit=1&email=claudemyseverio36@gmail.com`);
+                    
+                    if (!response.ok) {
+                        throw new Error('Serviço de busca de endereço indisponível.');
+                    }
+                    
+                    const data = await response.json();
+
+                    if (data && data.length > 0) {
+                        const result = data[0];
+                        const lat = parseFloat(result.lat);
+                        const lon = parseFloat(result.lon);
+                        
+                        // SUCESSO! Atualiza o mapa
+                        updateMapPin(lat, lon, 16);
+                        showMessage('Endereço encontrado! Verifique o pino e ajuste se necessário.', 'success');
+
+                    } else {
+                        // Não encontrou
+                        showMessage('Endereço não encontrado. Tente ser mais específico ou clique manualmente no mapa.', 'error');
+                    }
+
+                } catch (error) {
+                    console.error('Erro na Geocodificação:', error);
+                    showMessage('Erro ao buscar endereço. Verifique sua conexão ou clique manualmente.', 'error');
+                } finally {
+                    searchButton.disabled = false;
+                    searchButton.innerHTML = '<i class="fas fa-search mr-2"></i>Buscar Endereço no Mapa';
+                }
+            });
+
+            // *** FUNÇÃO: Mostrar Mensagens (para o JS) ***
+            function showMessage(msg, type = 'success') {
+                const phpError = document.getElementById('error-message');
+                if (phpError) phpError.style.display = 'none';
+
+                if (!msg) {
+                    messagePlaceholder.innerHTML = '';
+                    return;
+                }
+                
+                const bgColor = type === 'success' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700';
+                messagePlaceholder.innerHTML = `<div class="w-full p-4 mb-4 text-center rounded-lg ${bgColor}">${msg}</div>`;
+            }
+        });
+    </script>
 </body>
 </html>
-
